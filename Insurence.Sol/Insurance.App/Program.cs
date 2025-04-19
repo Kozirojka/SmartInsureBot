@@ -1,4 +1,6 @@
 ﻿using Insurance.App;
+using Insurance.App.Scenario;
+using Insurance.App.Scenarios;
 using Insurance.App.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -25,10 +27,16 @@ IHost host = Host.CreateDefaultBuilder(args)
                 TelegramBotClientOptions options = new(botConfiguration.BotToken);
                 return new TelegramBotClient(options, httpClient);
             });
-
+        
         services.AddScoped<UpdateHandler>();
         services.AddScoped<ReceiverService>();
         services.AddHostedService<PollingService>();
+        
+        services.AddScoped<IScenario>(sp => sp.GetRequiredService<PurchaseInsuranceScenario>());
+        services.AddSingleton<IUserStateService, InMemoryUserStateService>();
+        services.AddSingleton<ScenarioFactory>();
+        
+        
     })
     .Build();
 
