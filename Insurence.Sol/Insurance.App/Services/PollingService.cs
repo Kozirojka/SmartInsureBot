@@ -1,5 +1,5 @@
 using Console.Advanced.Abstract;
-using Console.Advanced.Services;
+using Insurance.App.Abstract;
 using Microsoft.Extensions.Logging;
 
 namespace Insurance.App.Services;

@@ -1,9 +1,8 @@
-using Insurance.App.Abstract;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Console.Advanced.Abstract;
+namespace Insurance.App.Abstract;
 
 public abstract class PollingServiceBase<TReceiverService>(IServiceProvider serviceProvider, ILogger<PollingServiceBase<TReceiverService>> logger)
     : BackgroundService where TReceiverService : IReceiverService
