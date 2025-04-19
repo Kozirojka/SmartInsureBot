@@ -1,8 +1,12 @@
-namespace Insurance.App;
+namespace Insurance.App.Enums;
 
+/// <summary>
+/// This is enums for managing the state of the scenario 
+/// </summary>
 public enum UserState
 {
-    awaiting_photo_passport,
-    awaiting_photo_driving_license,
-    none
+    AwaitingPhotoPassport,
+    AwaitingPhotoDrivingLicense,
+    None,
+    Default
 }

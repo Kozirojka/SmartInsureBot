@@ -1,4 +1,3 @@
-using Console.Advanced.Abstract;
 using Insurance.App.Abstract;
 using Microsoft.Extensions.Logging;
 

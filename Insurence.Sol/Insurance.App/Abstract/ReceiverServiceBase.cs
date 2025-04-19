@@ -1,9 +1,8 @@
-using Insurance.App.Abstract;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 
-namespace Console.Advanced.Abstract;
+namespace Insurance.App.Abstract;
 
 public abstract class ReceiverServiceBase<TUpdateHandler>(ITelegramBotClient botClient, TUpdateHandler updateHandler, ILogger<ReceiverServiceBase<TUpdateHandler>> logger)
     : IReceiverService where TUpdateHandler : IUpdateHandler
