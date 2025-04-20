@@ -1,3 +1,4 @@
+using Insurance.App.Abstract;
 using Insurance.App.Enums;
 using Telegram.Bot.Types;
 
@@ -5,6 +6,9 @@ namespace Insurance.App.Interface;
 
 
 
+/// <summary>
+/// UserStateService - implemented interface for manipulation with state machine flow
+/// </summary>
 public class UserStateService : IUserState
 {
     // краще використовувати chat.Id замість Chat

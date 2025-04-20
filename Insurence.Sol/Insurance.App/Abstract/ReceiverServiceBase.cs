@@ -4,7 +4,10 @@ using Telegram.Bot.Polling;
 
 namespace Insurance.App.Abstract;
 
-public abstract class ReceiverServiceBase<TUpdateHandler>(ITelegramBotClient botClient, TUpdateHandler updateHandler, ILogger<ReceiverServiceBase<TUpdateHandler>> logger)
+public abstract class ReceiverServiceBase<TUpdateHandler>(
+    ITelegramBotClient botClient,
+    TUpdateHandler updateHandler,
+    ILogger<ReceiverServiceBase<TUpdateHandler>> logger)
     : IReceiverService where TUpdateHandler : IUpdateHandler
 {
     public async Task ReceiveAsync(CancellationToken stoppingToken)

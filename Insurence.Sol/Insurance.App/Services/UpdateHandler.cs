@@ -1,3 +1,4 @@
+using Insurance.App.Abstract;
 using Insurance.App.Enums;
 using Insurance.App.Interface;
 using Insurance.App.Scenarios;
@@ -12,20 +13,49 @@ using Telegram.Bot.Types.ReplyMarkups;
 namespace Insurance.App.Services;
 
 //todo: потрібно ще буде створити фабрику сценаріїв, для того, щоб користувач міг 
-public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger, IUserState userState, IScenarios senarios) : IUpdateHandler
+public class UpdateHandler(
+    ITelegramBotClient bot,
+    ILogger<UpdateHandler> logger,
+    IUserState userState,
+    IScenarios scenarios)
+    : IUpdateHandler
 {
-    
-    public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update,
+    public async Task HandleUpdateAsync(
+        ITelegramBotClient botClient, 
+        Update update,
         CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        await (update switch
+        try
         {
-            { Message: { } message } => OnMessage(message),
-            { EditedMessage: { } message } => OnMessage(message),
-            { CallbackQuery: { } callbackQuery } => OnCallbackQuery(callbackQuery),
-            _ => UnknownUpdateHandlerAsync(update)
-        });
+            cancellationToken.ThrowIfCancellationRequested();
+            
+            await (update switch
+            {
+                { Message: { } message } => OnMessage(message),
+                { EditedMessage: { } message } => OnMessage(message),
+                { CallbackQuery: { } callbackQuery } => OnCallbackQuery(callbackQuery),
+                _ => UnknownUpdateHandlerAsync(update)
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error handling update {UpdateId}", update.Id);
+        }
+    }
+
+    public Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, HandleErrorSource source,
+        CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task HandlePollingErrorAsync(
+        ITelegramBotClient botClient, 
+        Exception exception,
+        CancellationToken cancellationToken)
+    {
+        logger.LogError(exception, "Polling error");
+        return Task.CompletedTask;
     }
 
     private async Task OnCallbackQuery(CallbackQuery callbackQuery)
@@ -34,38 +64,46 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
 
         if (currentState != UserState.None)
         {
-            await senarios.HandleCallbackAsync(callbackQuery, currentState);
+            await scenarios.HandleCallbackAsync(callbackQuery, currentState);
         }
     }
     
-    private async Task OnMessage(Message msg)
+    private async Task OnMessage(Message message)
     {
-        logger.LogInformation("Receive message type: {MessageType}", msg.Type);
+        logger.LogInformation("Received message type: {MessageType}", message.Type);
     
-        var currentState = userState.GetState(msg.Chat);
+        var currentState = userState.GetState(message.Chat);
         
-        // тут проблема, після закінчення трубки
         if (currentState != UserState.None)
         {
-            if (msg.Text is { } text)
+            if (message.Text is { } text && text.StartsWith("/"))
             {
                 var command = text.Split(' ')[0];
                 
                 if (command == "/butLicenceFlow")
                 {
-                    await LicenceFlow(msg, currentState);
+                    await scenarios.HandleAsync(message, currentState);
+                    return;
+                }
+                
+                if (command == "/start" || command == "/restart")
+                {
+                    userState.SetState(message.Chat, UserState.Default);
+                    await SendStartMessage(message);
                     return;
                 }
             }
             
-            
-            await LicenceFlow(msg, currentState);
+            await scenarios.HandleAsync(message, currentState);
             return;
         }
     
-        if (msg.Text is not { } messageText)
+        if (message.Text is not { } messageText)
         {
-            await bot.SendMessage(msg.Chat.Id, "Я розумію лише текстові команди. Наприклад: /start або /message");
+            await bot.SendMessage(
+                 message.Chat.Id, 
+                 "I only understand text commands. For example: /start"
+            );
             return;
         }
     
@@ -73,53 +111,53 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
     
         var sentMessage = await (commandText switch
         {
-            "/start" => SendStartMessage(msg),
-            _ => Usage(msg)
+            "/start" => SendStartMessage(message),
+            _ => SendUsageMessage(message)
         });
     
-        logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage.Id);
+        logger.LogInformation("Message sent with id: {SentMessageId}", sentMessage.MessageId);
     }
 
-
-    private Task<Message> LicenceFlow(Message msg, UserState userS)
+    private async Task<Message> SendStartMessage(Message message)
     {
-        return senarios.HandleAsync(msg, userS);
-    }
-
-
-    async Task<Message> SendStartMessage(Message msg)
-    {
-        const string usage = """
+        const string startMessage = """
                              <b>Hi</b>
-                             I'm insurance bot and help you with purchase
-                             of licence or something like this 
+                             I'm an insurance bot and can help you with purchasing 
+                             a license or related services.
+                             
+                             Type /butLicenceFlow to start the process.
                              """;
 
-        return await bot.SendMessage(msg.Chat, usage, parseMode: ParseMode.Html);
+        var result = await bot.SendMessage(
+             message.Chat.Id, 
+             startMessage, 
+            parseMode: ParseMode.Html
+        );
+        
+        userState.SetState(message.Chat, UserState.Default);
+        
+        return result;
     }
 
-    async Task<Message> Usage(Message msg)
+    private async Task<Message> SendUsageMessage(Message message)
     {
-        const string usage = """
+        const string usageMessage = """
                                  <b><u>Bot menu</u></b>:
-                                 /instructions   - for instructions
-                             """;
-        return await bot.SendMessage(msg.Chat, usage, parseMode: ParseMode.Html,
-            replyMarkup: new ReplyKeyboardRemove());
-    }
-
-    private Task UnknownUpdateHandlerAsync(Update update)
-    {
-        logger.LogInformation("Unknown update type: {UpdateType}", update.Type);
-        return Task.CompletedTask;
+                                 /start         - Start or restart the bot
+                                 /butLicenceFlow - Begin the license purchase process
+                                 """;
+                                 
+        return await bot.SendMessage(  
+             message.Chat.Id, 
+             usageMessage, 
+             ParseMode.Html,
+            replyMarkup: new ReplyKeyboardRemove()
+        );
     }
     
-    public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, HandleErrorSource source,
-        CancellationToken cancellationToken)
+    private Task<Message> UnknownUpdateHandlerAsync(Update update)
     {
-        logger.LogInformation("HandleError: {Exception}", exception);
-        if (exception is RequestException)
-            await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+        logger.LogInformation("Unknown update type: {UpdateType}", update.Type);
+        return Task.FromResult<Message>(null);
     }
-
 }
