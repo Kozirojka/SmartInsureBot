@@ -15,9 +15,9 @@ public class CreateLicenceScenarios(ITelegramBotClient bot, IUserState userState
     {
         switch (userState)
         {
-            case UserState.None:
+            case UserState.Default:
                 _userState.SetState(message.Chat, UserState.AwaitingPhotoPassport);
-                return await _bot.SendMessage(message.Chat, "Messege passport is sended.");
+                return await _bot.SendMessage(message.Chat, "Please send the photo of passport");
             
             case UserState.AwaitingPhotoPassport:
                 _userState.SetState(message.Chat, UserState.AwaitingPhotoDrivingLicense);

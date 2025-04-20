@@ -1,6 +1,7 @@
 ﻿using Insurance.App;
 using Insurance.App.Interface;
 using Insurance.App.Scenarios;
+using Insurance.App.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -30,6 +31,10 @@ IHost host = Host.CreateDefaultBuilder(args)
 
         services.AddSingleton<IUserState, UserStateService>();
         services.AddSingleton<IScenarios, CreateLicenceScenarios>();
+        
+        services.AddScoped<UpdateHandler>();
+        services.AddScoped<ReceiverService>();
+        services.AddHostedService<PollingService>();
     })
     .Build();
 

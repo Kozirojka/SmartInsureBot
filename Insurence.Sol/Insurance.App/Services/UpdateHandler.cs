@@ -29,33 +29,44 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
     private async Task OnMessage(Message msg)
     {
         logger.LogInformation("Receive message type: {MessageType}", msg.Type);
-        
-        if (msg.Text is not { } messageText)
-            return;
-        
-        
-        //це є перевірка на той випадко, чи користувач не пребуває чамос 
-        //у певному стейту, якщо перебуває, то ми його перенаправляємо
-        //у цей flow
-        var userS = userState.GetState(msg.Chat);
-        if (userS != UserState.None)
+    
+        var currentState = userState.GetState(msg.Chat);
+    
+        if (currentState != UserState.None)
         {
-            Message sentMessage2 = await (messageText.Split(' ')[0] switch
+            if (msg.Text is { } text)
             {
-                "/butLicenceFlow" => LicenceFlow(msg, userS),
-                _ => Usage(msg)
-            });
+                var command = text.Split(' ')[0];
+                
+                if (command == "/butLicenceFlow")
+                {
+                    await LicenceFlow(msg, currentState);
+                    return;
+                }
+            }
+    
+            await LicenceFlow(msg, currentState);
+            return;
         }
-        
-       
-        Message sentMessage = await (messageText.Split(' ')[0] switch
+    
+        if (msg.Text is not { } messageText)
+        {
+            await bot.SendMessage(msg.Chat.Id, "Я розумію лише текстові команди. Наприклад: /start або /message");
+            return;
+        }
+    
+        var commandText = messageText.Split(' ')[0];
+    
+        var sentMessage = await (commandText switch
         {
             "/message" => SendMessageBack(msg),
             "/start" => SendStartMessage(msg),
             _ => Usage(msg)
         });
+    
         logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage.Id);
     }
+
 
     private Task<Message> LicenceFlow(Message msg, UserState userS)
     {
