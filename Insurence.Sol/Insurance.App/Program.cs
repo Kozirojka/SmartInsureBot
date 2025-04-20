@@ -5,6 +5,7 @@ using Insurance.App.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Mindee.Extensions.DependencyInjection;
 using Telegram.Bot;
 
 
@@ -31,10 +32,12 @@ IHost host = Host.CreateDefaultBuilder(args)
 
         services.AddSingleton<IUserState, UserStateService>();
         services.AddSingleton<IScenarios, CreateLicenceScenarios>();
+        services.AddSingleton<IPhotoService, PhotoService>();
         
         services.AddScoped<UpdateHandler>();
         services.AddScoped<ReceiverService>();
         services.AddHostedService<PollingService>();
+        services.AddMindeeClient();
     })
     .Build();
 

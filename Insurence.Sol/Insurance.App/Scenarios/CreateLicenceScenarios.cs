@@ -1,16 +1,21 @@
 using Insurance.App.Enums;
 using Insurance.App.Interface;
+using Mindee;
+using Mindee.Input;
+using Mindee.Product.DriverLicense;
+using Mindee.Product.InternationalId;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
 namespace Insurance.App.Scenarios;
 
-public class CreateLicenceScenarios(ITelegramBotClient bot, IUserState userState) : IScenarios
+public class CreateLicenceScenarios(ITelegramBotClient bot, IUserState userState, IPhotoService photoService) : IScenarios
 {
     private readonly ITelegramBotClient _bot = bot;
     private readonly IUserState _userState = userState;
 
+    MindeeClient mindeeClient = new ("08552e670efa3fe3a3b257bd3061d6b5");
     //in this plot user parametr exist for swting in switch case for anser
     public async Task<Message> HandleAsync(Message message, UserState userState)
     {
@@ -29,7 +34,7 @@ public class CreateLicenceScenarios(ITelegramBotClient bot, IUserState userState
                 if (message.Type == MessageType.Photo && message.Photo != null)
                 {
                     var photo = message.Photo.Last();
-
+                    
                     _userState.AddPhoto(message.Chat, photo);
                 }
                 
@@ -39,23 +44,50 @@ public class CreateLicenceScenarios(ITelegramBotClient bot, IUserState userState
             
             case UserState.AwaitingPhotoDrivingLicense:
                 _userState.SetState(message.Chat, UserState.AllowForApprove);
-                
+            
+                if (message.Type == MessageType.Photo && message.Photo != null)
+                {
+                    var photo = message.Photo.Last();
+                    
+                    _userState.AddPhoto(message.Chat, photo);
+                }
                 await _bot.SendMessage(
                     message.Chat,
-                    "You sent all required data.<br><b>Processing...</b><br>Please wait some time for the data to be processed.",
+                    "You sent all required data.<b>Processing...</b>" +
+                    "Please wait some time for the data to be processed.",
                     ParseMode.Html
                 );
-
+            
+                var savedPhotos = _userState.GetPhotos(message.Chat);
+            
+                var passportInput = await photoService.DownloadPhotoAsInputSource(_bot, savedPhotos[0].FileId, "passport.jpg");
+            
+                var passportResponse = await mindeeClient.EnqueueAndParseAsync<InternationalIdV2>(passportInput);
+            
+                var licenseInput = await photoService.DownloadPhotoAsInputSource(_bot, savedPhotos[1].FileId, "driving_license.jpg");
+            
+                var licenseResponse = await mindeeClient.EnqueueAndParseAsync<DriverLicenseV1>(licenseInput);
+            
+                Console.WriteLine("Driving License:");
+                Console.WriteLine(licenseResponse.Document.ToString());
+            
+                await _bot.SendMessage(
+                    message.Chat,
+                    "<b>✅ Passport</b>:\n" + passportResponse.Document.ToString(),
+                    ParseMode.Html
+                );
                 
-                // todo: тут ми відправляємо наші дані до AI штучного
-                // інтелекту та очікуємо на вибірку даних
-                // що він відішле нам
-
-                var dataFromThePhoto = "Some shit with this";
+                 await _bot.SendMessage(
+                    message.Chat,
+                     "\n\n<b>✅ License</b>:\n" + licenseResponse.Document.ToString(),
+                    ParseMode.Html
+                );
                 
-                
-                // ось тут можна буде зробити для користувача дві кноки так або ні, типу як inline
-                return await _bot.SendMessage(message.Chat, dataFromThePhoto);
+                return await _bot.SendMessage(
+                    message.Chat,
+                    "Yes or No",
+                    ParseMode.Html
+                );
             
             case UserState.AllowForApprove:
                 
