@@ -2,6 +2,7 @@ using Insurance.App.Enums;
 using Insurance.App.Interface;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 
 namespace Insurance.App.Scenarios;
 
@@ -23,17 +24,28 @@ public class CreateLicenceScenarios(ITelegramBotClient bot, IUserState userState
             
             case UserState.AwaitingPhotoPassport:
                 _userState.SetState(message.Chat, UserState.AwaitingPhotoDrivingLicense);
-                // тут також збергіаєм у память і після цього відправляю до штучного інтеоекту
+                
+                
+                if (message.Type == MessageType.Photo && message.Photo != null)
+                {
+                    var photo = message.Photo.Last();
+
+                    _userState.AddPhoto(message.Chat, photo);
+                }
                 
                 //туту буде виконуватись штучний інтелект вирахоування певних даних
-                return await _bot.SendMessage(message.Chat, "Passport is sent.");
+                return await _bot.SendMessage(message.Chat, "Passport is sent. Please send an driving license.");
             
             
             case UserState.AwaitingPhotoDrivingLicense:
                 _userState.SetState(message.Chat, UserState.AllowForApprove);
                 
-                await _bot.SendMessage(message.Chat, "Driving license is sent please " +
-                                                     "wait some time for proceed of data.");
+                await _bot.SendMessage(
+                    message.Chat,
+                    "You sent all required data.<br><b>Processing...</b><br>Please wait some time for the data to be processed.",
+                    ParseMode.Html
+                );
+
                 
                 // todo: тут ми відправляємо наші дані до AI штучного
                 // інтелекту та очікуємо на вибірку даних
