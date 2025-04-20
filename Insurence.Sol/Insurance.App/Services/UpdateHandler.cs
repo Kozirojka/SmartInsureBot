@@ -23,8 +23,19 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
         {
             { Message: { } message } => OnMessage(message),
             { EditedMessage: { } message } => OnMessage(message),
+            { CallbackQuery: { } callbackQuery } => OnCallbackQuery(callbackQuery),
             _ => UnknownUpdateHandlerAsync(update)
         });
+    }
+
+    private async Task OnCallbackQuery(CallbackQuery callbackQuery)
+    {
+        var currentState = userState.GetState(callbackQuery.Message?.Chat);
+
+        if (currentState != UserState.None)
+        {
+            await senarios.HandleCallbackAsync(callbackQuery, currentState);
+        }
     }
     
     private async Task OnMessage(Message msg)
@@ -46,7 +57,8 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
                     return;
                 }
             }
-    
+            
+            
             await LicenceFlow(msg, currentState);
             return;
         }
@@ -61,7 +73,6 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
     
         var sentMessage = await (commandText switch
         {
-            "/message" => SendMessageBack(msg),
             "/start" => SendStartMessage(msg),
             _ => Usage(msg)
         });
@@ -81,15 +92,8 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
         const string usage = """
                              <b>Hi</b>
                              I'm insurance bot and help you with purchase
-                             of licince or something like this 
+                             of licence or something like this 
                              """;
-
-        return await bot.SendMessage(msg.Chat, usage, parseMode: ParseMode.Html);
-    }
-
-    async Task<Message> SendMessageBack(Message msg)
-    {
-        const string usage = "<b>Your are a stupid bitch</b>";
 
         return await bot.SendMessage(msg.Chat, usage, parseMode: ParseMode.Html);
     }
@@ -98,8 +102,6 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
     {
         const string usage = """
                                  <b><u>Bot menu</u></b>:
-                                 /photo          - send out logo
-                                 /message        - send some message
                                  /instructions   - for instructions
                              """;
         return await bot.SendMessage(msg.Chat, usage, parseMode: ParseMode.Html,

@@ -7,6 +7,7 @@ using Mindee.Product.InternationalId;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Insurance.App.Scenarios;
 
@@ -43,7 +44,6 @@ public class CreateLicenceScenarios(ITelegramBotClient bot, IUserState userState
             
             
             case UserState.AwaitingPhotoDrivingLicense:
-                _userState.SetState(message.Chat, UserState.AllowForApprove);
             
                 if (message.Type == MessageType.Photo && message.Photo != null)
                 {
@@ -82,13 +82,21 @@ public class CreateLicenceScenarios(ITelegramBotClient bot, IUserState userState
                      "\n\n<b>✅ License</b>:\n" + licenseResponse.Document.ToString(),
                     ParseMode.Html
                 );
+
+                var inlineMarkup = new InlineKeyboardMarkup()
+                    .AddNewRow()
+                    .AddButton("Yes", "Yes")
+                    .AddButton("No", "No");
                 
+                _userState.SetState(message.Chat, UserState.AllowForApprove);
+
                 return await _bot.SendMessage(
                     message.Chat,
-                    "Yes or No",
-                    ParseMode.Html
+                    "Does everything is good and you are happy with result",
+                    ParseMode.Html,
+                    replyMarkup: inlineMarkup
                 );
-            
+                
             case UserState.AllowForApprove:
                 
                 if(message.Text == "No")
@@ -129,4 +137,44 @@ public class CreateLicenceScenarios(ITelegramBotClient bot, IUserState userState
         //its mock data
         return await _bot.SendMessage(message.Chat, "Dring licence is sended.");
     }
+
+    public async Task<Message> HandleCallbackAsync(CallbackQuery callback, UserState userState)
+    {
+        var chat = callback.Message?.Chat;
+    
+        switch (userState)
+        {
+            case UserState.AllowForApprove:
+                if (callback.Data == "No")
+                {
+                    _userState.SetState(chat, UserState.AwaitingPhotoPassport);
+                    return await _bot.SendMessage(chat, "Спробуйте будь ласка перефотографувати під кращим освітленням");
+                }
+    
+                if (callback.Data == "Yes")
+                {
+                    _userState.SetState(chat, UserState.OpenPurchesePipe);
+                    return await _bot.SendMessage(chat, "У нас стандартна ціна на підписку становить 100$, чи згідні ви оплатити таку ціну?");
+                }
+                break;
+    
+            case UserState.OpenPurchesePipe:
+                if (callback.Data == "No")
+                {
+                    _userState.SetState(chat, UserState.AllowForApprove);
+                    return await _bot.SendMessage(chat, "У нас в системі мінімальна сума становить 100 доларів");
+                }
+    
+                if (callback.Data == "Yes")
+                {
+                    _userState.SetState(chat, UserState.None);
+                    var result = "Some Pdf File Data"; 
+                    return await _bot.SendMessage(chat, result);
+                }
+                break;
+        }
+    
+        return await _bot.SendMessage(chat, "Callback received but not handled properly.");
+    }
+
 }
