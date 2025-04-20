@@ -11,6 +11,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Insurance.App.Services;
 
+//todo: потрібно ще буде створити фабрику сценаріїв, для того, щоб користувач міг 
 public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger, IUserState userState, IScenarios senarios) : IUpdateHandler
 {
     
@@ -25,13 +26,14 @@ public class UpdateHandler(ITelegramBotClient bot, ILogger<UpdateHandler> logger
             _ => UnknownUpdateHandlerAsync(update)
         });
     }
-
+    
     private async Task OnMessage(Message msg)
     {
         logger.LogInformation("Receive message type: {MessageType}", msg.Type);
     
         var currentState = userState.GetState(msg.Chat);
-    
+        
+        // тут проблема, після закінчення трубки
         if (currentState != UserState.None)
         {
             if (msg.Text is { } text)

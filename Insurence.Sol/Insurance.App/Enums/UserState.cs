@@ -8,5 +8,8 @@ public enum UserState
     AwaitingPhotoPassport,
     AwaitingPhotoDrivingLicense,
     None,
-    Default
+    Default,
+    AwaitingForApproving,
+    AllowForApprove,
+    OpenPurchesePipe
 }
