@@ -4,7 +4,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Insurance.App.Abstract;
 
-public abstract class PollingServiceBase<TReceiverService>(IServiceProvider serviceProvider, ILogger<PollingServiceBase<TReceiverService>> logger)
+public abstract class PollingServiceBase<TReceiverService>(
+    IServiceProvider serviceProvider,
+    ILogger<PollingServiceBase<TReceiverService>> logger)
     : BackgroundService where TReceiverService : IReceiverService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -16,7 +18,6 @@ public abstract class PollingServiceBase<TReceiverService>(IServiceProvider serv
     private async Task DoWork(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
-        {
             try
             {
                 using var scope = serviceProvider.CreateScope();
@@ -29,6 +30,5 @@ public abstract class PollingServiceBase<TReceiverService>(IServiceProvider serv
                 logger.LogError("Polling failed with exception: {Exception}", ex);
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
             }
-        }
     }
 }

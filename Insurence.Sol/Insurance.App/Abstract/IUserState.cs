@@ -1,9 +1,7 @@
-using System.Drawing;
 using Insurance.App.Enums;
 using Telegram.Bot.Types;
 
-namespace Insurance.App.Interface;
-
+namespace Insurance.App.Abstract;
 
 //this is interface for
 //manipulation with user state
