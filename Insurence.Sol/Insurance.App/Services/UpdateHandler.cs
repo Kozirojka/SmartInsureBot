@@ -71,7 +71,12 @@ public class UpdateHandler(
     private async Task OnMessage(Message message)
     {
         logger.LogInformation("Received message type: {MessageType}", message.Type);
-    
+        
+        //maybe i do not have enough time for this, but if i
+        //in this line i d like to intergrate OpenAI that will be 
+        // recignize what the messages what sended from user
+        
+        
         var currentState = userState.GetState(message.Chat);
         
         if (currentState != UserState.None)
@@ -80,7 +85,7 @@ public class UpdateHandler(
             {
                 var command = text.Split(' ')[0];
                 
-                if (command == "/butLicenceFlow")
+                if (command == "/buyLicenceFlow")
                 {
                     await scenarios.HandleAsync(message, currentState);
                     return;
@@ -125,7 +130,7 @@ public class UpdateHandler(
                              I'm an insurance bot and can help you with purchasing 
                              a license or related services.
                              
-                             Type /butLicenceFlow to start the process.
+                             Type /buyLicenceFlow to start the process.
                              """;
 
         var result = await bot.SendMessage(
@@ -144,7 +149,7 @@ public class UpdateHandler(
         const string usageMessage = """
                                  <b><u>Bot menu</u></b>:
                                  /start         - Start or restart the bot
-                                 /butLicenceFlow - Begin the license purchase process
+                                 /buyLicenceFlow - Begin the license purchase process
                                  """;
                                  
         return await bot.SendMessage(  
